@@ -74,6 +74,10 @@
   [db name v]
   (get-in db [:environments name v]))
 
+(defn get-application-in-environment
+  [db [appname appver] [envname envver]]
+  (get-environment-data db envname envver))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]

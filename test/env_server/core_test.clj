@@ -73,3 +73,19 @@
       (is (= (get-environment-data db name v)
              kvps)))))
 
+(deftest fulfilling-of-applications-in-environments
+  (testing "that if the environment has all the settings as keys then the application is fulfilled in that environment"
+    (let [[db1 appv] (create-application nil "app" #{"key1" "key2"})
+          [db2 envv] (create-environment db1 "env" {"key1" "value1"
+                                                    "key2" "value2"}
+                                         nil)]
+      (is (-> (get-application-in-environment db2 ["app" appv] ["env" envv])
+              (= {"key1" "value1"
+                  "key2" "value2"})))))
+  (testing "that if the env does not have all of the keys for the app, then an error is raised"
+        (let [[db1 appv] (create-application nil "app" #{"key1" "key2" "key3"})
+              [db2 envv] (create-environment db1 "env" {"key1" "value1"
+                                                        "key2" "value2"}
+                                             nil)]
+          (is false ))))
+
