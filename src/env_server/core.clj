@@ -3,7 +3,7 @@
             [digest :as digest])
   (:gen-class))
 
-(defn -create-app-hash
+(defn -create-hash
   [name settings]
   (->> settings
        (map identity)
@@ -15,7 +15,7 @@
 
 (defn add-application-settings
   [db name settings]
-  (let [v (-create-app-hash name settings)]
+  (let [v (-create-hash name settings)]
     (-> db
         (assoc-in [:applications name v] {:settings settings})
         (vector v))))
@@ -44,6 +44,31 @@
 (defn get-application-settings
   [db name version]
   (get-in db [:applications name version :settings]))
+
+(defn create-environment
+  [db name kvps base]
+  (let [v (-create-hash name (keys kvps))]
+    (vector 
+     (-> db
+         (assoc-in [:environments name v] kvps))
+     v)))
+
+(defn get-environment-names
+  [db]
+  (->> db
+       :environments
+       keys
+       (apply hash-set)))
+
+(defn get-environment-versions
+  [db name]
+  (-> 
+   (get-in db [:environments name] {})
+   keys))
+
+(defn get-environment-data
+  [db name v]
+  (get-in db [:environments name v]))
 
 (defn -main
   "I don't do a whole lot ... yet."

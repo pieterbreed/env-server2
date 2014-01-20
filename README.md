@@ -5,7 +5,8 @@ A service for sane environment configuration.
 ## Features
 
  - Define things called applications, which are a specifications for configuration requirements of real (software) applications.
- - Define things called environments, that are full or partial realizations of applications.
+ - Applications have version strings computed in an idempotent/consistent way.
+ - Define things called environments (dicts), that are full or partial realizations of applications.
  - Allow environments to be based on other environments, optionally overriding some of the valuese.
  - Allow environment variables to resolve their values using references to other values, ie, interpolation.
  - Allow environment variables to resolve their values using string.format() syntax.
