@@ -47,10 +47,14 @@
 
 (defn create-environment
   [db name kvps base]
-  (let [v (-create-hash name (keys kvps))]
+  (let [base-data (if-let [[bname bver] base]
+                    (get-environment-data db bname bver)
+                    {})
+        effective-data (merge base-data kvps)
+        v (-create-hash name (keys effective-data))]
     (vector 
      (-> db
-         (assoc-in [:environments name v] kvps))
+         (assoc-in [:environments name v] effective-data))
      v)))
 
 (defn get-environment-names

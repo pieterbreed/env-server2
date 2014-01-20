@@ -57,6 +57,14 @@
               count
               (= 1)))))
 
+  (testing "That environments can be added and based on other environments"
+    (let [[db1 v1] (create-environment nil "name1" {"key1" "value1"} nil)
+          [db2 v2] (create-environment db1 "name2" {"key2" "value2"} ["name1" v1])]
+      (is (not (nil? db2)))
+      (is ( = {"key1" "value1"
+               "key2" "value2"}
+              (get-environment-data db2 "name2" v2)))))
+
   (testing "That created environments has their own data and values"
     (let [name "name"
           kvps {"key1" "value1"
