@@ -1,7 +1,18 @@
 (ns env-server.core-test
   (:require [clojure.test :refer :all]
             [env-server.core :refer :all]
-            [slingshot.slingshot :refer [try+]]))
+            [slingshot.slingshot :refer [try+ throw+]]))
+
+(defmacro expect-throw-return-type
+  [& body]
+  `(try+
+    (let [res# ~@body]
+      (throw+ {:message  "Did not throw :("
+               :actual-result res#}))
+    (catch #(and (map? %)
+                 (contains? % :type))
+        {~'t :type}
+      ~'t)))
 
 (deftest application-tests
   (testing "That the application hash algorithm is consistent"
@@ -42,7 +53,19 @@
              (-> nil
                  (create-application name settings)
                  first
-                 (get-application-settings name version)))))))
+                 (get-application-settings name version))))))
+
+  
+
+  (testing "Errors when requesting"
+    (testing "unset applications"
+      (let [db (create-application nil "app" #{"one" "two"})
+            err-type :env-server.core/application-name-not-found]
+        (is (= err-type
+               (expect-throw-return-type (get-application-versions db "test"))))
+        (is (= err-type
+               (expect-throw-return-type (get-application-settings db "test" "fake_version"))))))
+    (testing "bad versions of good applications")))
 
 (deftest environment-tests
   (testing "That environments can be added to a new db"
@@ -74,7 +97,7 @@
       (is (= (get-environment-data db name v)
              kvps)))))
 
-(deftest fulfilling-of-applications-in-environments
+(deftest realizing-of-applications-in-environments
   (testing "that if the environment has all the settings as keys then the application is realized in that environment"
     (let [[db1 appv] (create-application nil "app" #{"key1" "key2"})
           [db2 envv] (create-environment db1 "env" {"key1" "value1"

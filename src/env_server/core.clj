@@ -19,6 +19,44 @@
 
 ;; -------------------- APPLICATIONS --------------------
 
+(defn get-application-names
+  [db]
+  (->> db
+       :applications
+       keys
+       (apply hash-set)))
+
+(defn -app-or-error
+  [db name]
+  (let [res (get-in db [:applications name])]
+    (if (nil? res)
+      (throw+ {:type ::application-name-not-found
+               :requested-app-name name
+               :available-app-names (get-application-names db)})
+      res)))
+
+(defn -app-versions
+  [app]
+  (->> app
+       keys
+       (apply hash-set)))
+
+(defn -app-and-version-or-error
+  [db name ver]
+  (let [app (-app-or-error db name)
+        res (get app ver)]
+    (if (nil? res)
+      (throw+ {:type ::application-version-not-found
+               :app-name name
+               :requested-version ver
+               :available-versions (-app-versions app)})
+      res)))
+
+(defn get-application-versions
+  [db name]
+  (let [app (-app-or-error db name)]
+    (-app-versions app)))
+
 (defn add-application-settings
   [db name settings]
   (let [v (-create-hash name settings)]
@@ -34,22 +72,10 @@
      (-> db
          (add-application-settings name settings))))
 
-(defn get-application-names
-  [db]
-  (->> db
-       :applications
-       keys
-       (apply hash-set)))
-
-(defn get-application-versions
-  [db name]
-  (-> db
-      (get-in [:applications name])
-      keys))
-
 (defn get-application-settings
   [db name version]
-  (get-in db [:applications name version :settings]))
+  (let [app (-app-and-version-or-error db name version)]
+    (:settings app)))
 
 ;; -------------------- ENVIRONMENTS --------------------
 
@@ -89,8 +115,6 @@
      (-> db
          (assoc-in [:environments name v] effective-data))
      v)))
-
-
 
 (defn realize-application
   "Realizes an application in an environment if its possible. IE, provides values for all of the keys that the application requires or throws an error"
