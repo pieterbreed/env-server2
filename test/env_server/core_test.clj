@@ -55,9 +55,7 @@
                  first
                  (get-application-settings name version))))))
 
-  
-
-  (testing "Errors when requesting"
+  (testing "Expect errors when requesting"
      (let [db (create-application nil "app" #{"one" "two"})
             err-type :env-server.core/application-name-not-found]
        (testing "unset applications"
