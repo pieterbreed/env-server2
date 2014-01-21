@@ -58,14 +58,14 @@
   
 
   (testing "Errors when requesting"
-    (testing "unset applications"
-      (let [db (create-application nil "app" #{"one" "two"})
+     (let [db (create-application nil "app" #{"one" "two"})
             err-type :env-server.core/application-name-not-found]
-        (is (= err-type
-               (expect-throw-return-type (get-application-versions db "test"))))
-        (is (= err-type
-               (expect-throw-return-type (get-application-settings db "test" "fake_version"))))))
-    (testing "bad versions of good applications")))
+       (testing "unset applications"
+         (is (= err-type
+                (expect-throw-return-type (get-application-versions db "test")))))
+       (testing "bad versions of good applications"
+         (is (= err-type
+                (expect-throw-return-type (get-application-settings db "test" "fake_version"))))))))
 
 (deftest environment-tests
   (testing "That environments can be added to a new db"
