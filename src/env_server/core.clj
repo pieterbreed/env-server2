@@ -3,6 +3,8 @@
             [digest :as digest])
   (:gen-class))
 
+;; -------------------- UTILS --------------------
+
 (defn -create-hash
   [name settings]
   (->> settings
@@ -12,6 +14,8 @@
        (reduce #(str %1 ":" %2))
        str/upper-case
        digest/md5))
+
+;; -------------------- APPLICATIONS --------------------
 
 (defn add-application-settings
   [db name settings]
@@ -45,6 +49,12 @@
   [db name version]
   (get-in db [:applications name version :settings]))
 
+;; -------------------- ENVIRONMENTS --------------------
+
+(defn get-environment-data
+  [db name v]
+  (get-in db [:environments name v]))
+
 (defn create-environment
   [db name kvps base]
   (let [base-data (if-let [[bname bver] base]
@@ -70,9 +80,6 @@
    (get-in db [:environments name] {})
    keys))
 
-(defn get-environment-data
-  [db name v]
-  (get-in db [:environments name v]))
 
 (defn get-application-in-environment
   [db [appname appver] [envname envver]]
