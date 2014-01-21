@@ -4,7 +4,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [digest "1.4.3"]]
+                 [digest "1.4.3"]
+                  [slingshot "0.10.3"]]
   :main ^:skip-aot env-server.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

@@ -1,6 +1,7 @@
 (ns env-server.core-test
   (:require [clojure.test :refer :all]
-            [env-server.core :refer :all]))
+            [env-server.core :refer :all]
+            [slingshot.slingshot :refer [try+]]))
 
 (deftest application-tests
   (testing "That the application hash algorithm is consistent"
@@ -74,12 +75,12 @@
              kvps)))))
 
 (deftest fulfilling-of-applications-in-environments
-  (testing "that if the environment has all the settings as keys then the application is fulfilled in that environment"
+  (testing "that if the environment has all the settings as keys then the application is realized in that environment"
     (let [[db1 appv] (create-application nil "app" #{"key1" "key2"})
           [db2 envv] (create-environment db1 "env" {"key1" "value1"
                                                     "key2" "value2"}
                                          nil)]
-      (is (-> (get-application-in-environment db2 ["app" appv] ["env" envv])
+      (is (-> (realize-application db2 ["app" appv] ["env" envv])
               (= {"key1" "value1"
                   "key2" "value2"})))))
   (testing "that if the env does not have all of the keys for the app, then an error is raised"
@@ -87,5 +88,11 @@
               [db2 envv] (create-environment db1 "env" {"key1" "value1"
                                                         "key2" "value2"}
                                              nil)]
-          (is false ))))
+          (is (= :env-server.core/app-not-realizable-in-environment
+                 (try+
+                  (realize-application db2
+                                       ["app" appv]
+                                       ["env" envv])
+                  (catch [:type :env-server.core/app-not-realizable-in-environment] {:keys [type]}
+                    type)))))))
 
