@@ -3,15 +3,14 @@
             [env-server.core :refer :all]
             [slingshot.slingshot :refer [try+ throw+]]))
 
-(defmacro expect-throw-return-type
+(defmacro thrown-map-as-value-or-error
+  "Executes a body of code in a try+ block, catches exceptions that are maps and return those as the value of the expression. If the code block does not throw an error, an error will be thrown indicating that the expected error was not caught."
   [& body]
   `(try+
     (let [res# ~@body]
       (throw+ {:message  "Did not throw :("
                :actual-result res#}))
-    (catch #(and (map? %)
-                 (contains? % :type))
-        {~'t :type}
+    (catch map? ~'t
       ~'t)))
 
 (deftest application-tests
@@ -56,14 +55,18 @@
                  (get-application-settings name version))))))
 
   (testing "Expect errors when requesting"
-     (let [db (create-application nil "app" #{"one" "two"})
-            err-type :env-server.core/application-name-not-found]
-       (testing "unset applications"
-         (is (= err-type
-                (expect-throw-return-type (get-application-versions db "test")))))
-       (testing "bad versions of good applications"
-         (is (= err-type
-                (expect-throw-return-type (get-application-settings db "test" "fake_version"))))))))
+    (let [[db appver] (create-application nil "app" #{"one" "two"})
+          err-type :env-server.core/application-name-not-found]
+      (testing "unset applications"
+        (is (= err-type
+               (-> (get-application-versions db "test")
+                   thrown-map-as-value-or-error
+                   :type))))
+      (testing "bad versions of good applications"
+        (is (= err-type
+               (-> (get-application-settings db "test" "fake_version")
+                   thrown-map-as-value-or-error
+                   :type)))))))
 
 (deftest environment-tests
   (testing "That environments can be added to a new db"
@@ -93,7 +96,28 @@
                 "key2" "value2"}
           [db v] (create-environment nil name kvps nil)]
       (is (= (get-environment-data db name v)
-             kvps)))))
+             kvps))))
+
+  (testing "Expect errors when requesting"
+    (testing "bad environment name from"
+      (let [[db0 appver] (create-application nil "app" #{"one" "two"})
+            [db envver] (create-environment db0 "env" {"one" "1" "two" "2"} nil)
+            expected-exception-type :env-server.core/environment-name-not-found]
+        (testing "get-environment-versions"
+          (is (= expected-exception-type
+                 (-> (get-environment-versions db "fake")
+                     thrown-map-as-value-or-error
+                     :type))))
+        (testing "get-environment-data"
+          (is (= expected-exception-type
+                 (-> (get-environment-data db "fake" "fake_version")
+                     thrown-map-as-value-or-error
+                     :type))))
+        (testing "realize-application"
+          (is (= expected-exception-type
+                 (-> (realize-application db ["app" appver] ["fake" "fake_version"])
+                     thrown-map-as-value-or-error
+                     :type))))))))
 
 (deftest realizing-of-applications-in-environments
   (testing "that if the environment has all the settings as keys then the application is realized in that environment"

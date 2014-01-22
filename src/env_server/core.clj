@@ -17,45 +17,58 @@
        str/upper-case
        digest/md5))
 
-;; -------------------- APPLICATIONS --------------------
-
-(defn get-application-names
-  [db]
+(defn -get-names
+  [db key]
+  {:pre [(map? db)
+         (keyword? key)]}
   (->> db
-       :applications
+       key
        keys
        (apply hash-set)))
+
+(defn -get-versions
+  [m]
+  {:pre [(map? m)]}
+  (->> m
+       keys
+       (apply hash-set)))
+
+;; -------------------- APPLICATIONS --------------------
 
 (defn -app-or-error
   [db name]
-  (let [res (get-in db [:applications name])]
-    (if (nil? res)
-      (throw+ {:type ::application-name-not-found
-               :requested-app-name name
-               :available-app-names (get-application-names db)})
-      res)))
-
-(defn -app-versions
-  [app]
-  (->> app
-       keys
-       (apply hash-set)))
+  {:pre [(map? db)
+         (string? name)]}
+  (if-let [res (get-in db [:applications name])]
+    res
+    (throw+ {:type ::application-name-not-found
+             :requested-app-name name
+             :available-app-names (-get-names db :applications)})))
 
 (defn -app-and-version-or-error
   [db name ver]
-  (let [app (-app-or-error db name)
-        res (get app ver)]
-    (if (nil? res)
+  {:pre [(map? db)
+         (string? name)
+         (string? ver)]}
+  (let [app (-app-or-error db name)]
+    (if-let [res (get app ver)]
+      res
       (throw+ {:type ::application-version-not-found
                :app-name name
                :requested-version ver
-               :available-versions (-app-versions app)})
-      res)))
+               :available-versions (-get-versions app)}))))
+
+(defn get-application-names
+  [db]
+  {:pre [(map? db)]}
+  (-get-names db :applications))
 
 (defn get-application-versions
   [db name]
+  {:pre [(map? db)
+         (string? name)]}
   (let [app (-app-or-error db name)]
-    (-app-versions app)))
+    (-get-versions app)))
 
 (defn add-application-settings
   [db name settings]
@@ -79,33 +92,58 @@
 
 ;; -------------------- ENVIRONMENTS --------------------
 
+(defn -env-or-error
+  [db name]
+  {:pre [(map? db)
+         (string? name)]}
+  (if-let [env (get-in db [:environments name])]
+    env
+    (throw+ {:type ::environment-name-not-found
+             :requested-name name
+             :available-env-names (-get-names db :environments)})))
+
+(defn -env-and-version-or-error
+  [db name ver]
+  {:pre [(map? db)
+         (string? name)
+         (string? ver)]}
+  (let [env (-env-or-error db name)]
+    (if-let [ver (get env ver)]
+      ver
+      (throw+ {:type ::environment-version-not-found
+               :requested-env-name name
+               :requested-version ver
+               :available-versions (-get-versions env)}))))
+
 (defn get-environment-names
   [db]
-  (->> db
-       :environments
-       keys
-       (apply hash-set)))
+  {:pre [(map? db)]}
+  (-get-names db :environments))
 
 (defn get-environment-versions
   [db name]
-  (->> (get-in db [:environments name] {})
-       keys
-       (apply hash-set)))
+  {:pre [(map? db)
+         (string? name)]}
+  (let [env (-env-or-error db name)]
+    (-get-versions env)))
 
 (defn get-environment-data
   [db name v]
-  (if-let [data (get-in db [:environments name v])]
-    data
-    (cond
-     (nil? (get-in db [:environments name])) (throw+ {:type ::environment-name-not-found
-                                                      :requested-env-name name})
-     :else (throw+ {:type ::environment-version-not-found
-                    :env-name name
-                    :requested-version v
-                    :available-versions (get-environment-versions db name)}))))
+  {:pre [(map? db)
+         (string? name)
+         (string? v)]}
+  (-env-and-version-or-error db name ver))
 
 (defn create-environment
   [db name kvps base]
+  {:pre [(or (map? db)
+             (nil? db))
+         (map? kvps)
+         (string? name)
+         (or (nil? base)
+             (and (vector? base)
+                  (string? (first base))
+                  (string? (second base))))]}
   (let [base-data (if-let [[bname bver] base]
                     (get-environment-data db bname bver)
                     {})
