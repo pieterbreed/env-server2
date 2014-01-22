@@ -10,7 +10,7 @@ A service for sane environment configuration.
  - Environments have consistent version numbers based on their key and data values
  - Allow environments to be based on other environments, optionally overriding some of the valuese.
  - Allow environment variables to resolve their values using references to other values, ie, referencing.
- - Allow environment variables to resolve their values using string.format() syntax.
+ - Allow environment variables to resolve their values using string interpolation syntax.
 
 ## Design rational
 
@@ -18,7 +18,35 @@ A service for sane environment configuration.
 
 ## Concepts
 
-### String.format
+### String Interpolation
+
+([Wikipedia article on string interpolation here](http://en.wikipedia.org/wiki/String_interpolation))
+
+The basic idea is that given this application:
+
+```
+UsefulConnectionString
+```
+
+and given this environment:
+
+```
+username=John
+pass=P@ssw0rd
+sqlDb=localhost
+ConnectionStringFormat="user:$$user, password:$$password, database:$$database"
+UsefulConnectionString="$ConnectionStringFormat$$$user=$username$$password=$pass$$database=$sqlDb"
+```
+
+that the application will be realized like this:
+
+```
+UsefulConnectionString="user:John, password:P@ssw0rd, database:localhost"
+```
+
+
+
+This is sometimes
 
 ### Referencing
 
