@@ -15,9 +15,9 @@
 
 (deftest application-tests
   (testing "That the application hash algorithm is consistent"
-    (let [v (-create-hash "name" #{"one" "two" "three"})]
+    (let [v (-create-set-hash "name" #{"one" "two" "three"})]
       (is (= v
-             (-create-hash "name" #{"one" "two" "three"})))))
+             (-create-set-hash "name" #{"one" "two" "three"})))))
   
   (testing "That you can create an application without specifying data"
     (is (-> nil
@@ -47,7 +47,7 @@
   (testing "When an application has settings they can be retrieved later"
     (let [settings #{"one" "two" "three"}
           name "path/to/app"
-          version (-create-hash name settings)]
+          version (-create-set-hash name settings)]
       (is (= settings
              (-> nil
                  (create-application name settings)
@@ -67,6 +67,7 @@
                (-> (get-application-settings db "test" "fake_version")
                    thrown-map-as-value-or-error
                    :type)))))))
+
 
 (deftest environment-tests
   (testing "That environments can be added to a new db"

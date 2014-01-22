@@ -9,13 +9,27 @@
 
 (defn -create-hash
   [name settings]
+  {:pre [(string? name)
+         (sequential? settings)]}
   (->> settings
-       (map identity)
        sort
        ((fn [c] (conj c name)))
        (reduce #(str %1 ":" %2))
        str/upper-case
        digest/md5))
+
+(defn -create-set-hash
+  [name set]
+  {:pre [(string? name)
+         (set? set)]}
+  (-create-hash name (map identity set)))
+
+(defn -create-map-hash
+  [name m]
+  {:pre [(string? name)
+         (map? m)]}
+  (-create-hash name (->> m
+                          (map (fn [[k v]] (str k ":" v))))))
 
 (defn -get-names
   [db key]
@@ -72,9 +86,15 @@
 
 (defn add-application-settings
   [db name settings]
-  (let [v (-create-hash name settings)]
+  {:pre [(or (nil? db)
+             (map? db))
+         (string? name)
+         (or (set? settings)
+             (nil? settings))]}
+  (let [effective-settings (or settings #{})
+        v (-create-set-hash name effective-settings)]
     (-> db
-        (assoc-in [:applications name v] {:settings settings})
+        (assoc-in [:applications name v] {:settings effective-settings})
         (vector v))))
 
 (defn create-application
@@ -132,7 +152,7 @@
   {:pre [(map? db)
          (string? name)
          (string? v)]}
-  (-env-and-version-or-error db name ver))
+  (-env-and-version-or-error db name v))
 
 (defn create-environment
   [db name kvps base]
@@ -148,7 +168,7 @@
                     (get-environment-data db bname bver)
                     {})
         effective-data (merge base-data kvps)
-        v (-create-hash name (keys effective-data))]
+        v (-create-map-hash name effective-data)]
     (vector 
      (-> db
          (assoc-in [:environments name v] effective-data))
