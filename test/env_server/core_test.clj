@@ -13,12 +13,18 @@
     (catch map? ~'t
       ~'t)))
 
+(deftest util-tests
+  (testing "Utils:"
+    (testing "that set hashes are consistent"
+      (let [v (-create-set-hash "name" #{"three" "one" "two"})]
+        (is (= v
+               (-create-set-hash "name" #{"one" "two" "three"})))))
+    (testing "that map hashes are consistent"
+      (let [v (-create-map-hash "name" {"one" "1" "two" "2" "three" "3"})]
+        (is (= v
+               (-create-map-hash "name" {"three" "3" "two" "2" "one" "1"})))))))
+
 (deftest application-tests
-  (testing "That the application hash algorithm is consistent"
-    (let [v (-create-set-hash "name" #{"one" "two" "three"})]
-      (is (= v
-             (-create-set-hash "name" #{"one" "two" "three"})))))
-  
   (testing "That you can create an application without specifying data"
     (is (-> nil
             (create-application "path/to/app")
