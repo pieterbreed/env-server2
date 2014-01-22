@@ -178,7 +178,8 @@
   "Realizes an application in an environment if its possible. IE, provides values for all of the keys that the application requires or throws an error"
   [db [appname appver] [envname envver]]
   (let [app-settings (get-application-settings db appname appver)
-        data (get-environment-data db envname envver)
+        data (-> (get-environment-data db envname envver)
+                 (select-keys app-settings))
         data-keys (->> data
                        keys
                        (apply hash-set))]

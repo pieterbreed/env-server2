@@ -146,5 +146,17 @@
                                        ["app" appv]
                                        ["env" envv])
                   (catch [:type :env-server.core/app-not-realizable-in-environment] {:keys [type]}
-                    type)))))))
+                    type))))))
+
+  (testing "that the realized application gets only the keys it requires"
+    (let [[db1 appv] (create-application nil "app" #{"key2" "key3"})
+          [db2 envv] (create-environment db1 "env" {"key1" "1"
+                                                    "key2" "2"
+                                                    "key3" "3"}
+                                         nil)]
+      (is (= {"key2" "2"
+              "key3" "3"}
+             (realize-application db2
+                                  ["app" appv]
+                                  ["env" envv]))))))
 
