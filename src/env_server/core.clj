@@ -2,7 +2,12 @@
   (:require [clojure.string :as str]
             [digest :as digest]
             [slingshot.slingshot :refer [throw+]]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [ring.middleware.reload :as reload]
+            [compojure.core :refer [defroutes GET POST]]
+            [compojure.route :as route]
+            [compojure.handler :as handler]
+            [org.httpkit.server :as httpkit])
   (:gen-class))
 
 ;; -------------------- UTILS --------------------
@@ -192,7 +197,19 @@
                :env-name envname
                :env-version envver}))))
 
+;; -------------------- ROUTING --------------------
+
+(defroutes all-routes
+  (GET "/" [] "Hello world!")
+  (route/not-found "Not found :("))
+
+(def in-dev? true)
+
+;; -------------------- MAIN ENTRYPOINT --------------------
+
 (defn -main
-  "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (let [handler (if in-dev?
+                  (reload/wrap-reload (handler/api #'all-routes))
+                  (handler/api all-routes))]
+    (httpkit/run-server handler {:port 9090})))

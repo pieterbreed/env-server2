@@ -9,12 +9,10 @@ A service for sane environment configuration.
  - Define things called environments (dicts), that are full or partial realizations of applications.
  - Environments have consistent version numbers based on their key and data values
  - Allow environments to be based on other environments, optionally overriding some of the valuese.
- - Allow environment variables to resolve their values using references to other values, ie, referencing.
- - Allow environment variables to resolve their values using string interpolation syntax.
 
-## Design rational
-
- - Things are created, but never updated
+ - REST interface (un-implemented)
+ - Allow environment variables to resolve their values using references to other values, ie, referencing. (un-implemented)
+ - Allow environment variables to resolve their values using string interpolation syntax. (un-implemented)
 
 ## Concepts
 
