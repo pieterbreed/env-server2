@@ -4,13 +4,21 @@
             [slingshot.slingshot :refer [throw+]]
             [clojure.set :as set]
             [ring.middleware.reload :as reload]
-            [compojure.core :refer [defroutes GET POST]]
-            [compojure.route :as route]
+            [ring.util.response :refer [response]]
+            [compojure.core :as routes]
             [compojure.handler :as handler]
-            [org.httpkit.server :as httpkit])
+            [compojure.route :as croute]
+            [org.httpkit.server :as httpkit]
+            [ring.middleware.json :as ringjson])
+  
   (:gen-class))
 
 ;; -------------------- UTILS --------------------
+
+(defn -or-value
+  "Returns the default (first) parameter's value if the second is nil, else the second param value"
+  [d v]
+  (if (nil? v) d v))
 
 (defn -create-hash
   [name settings]
@@ -38,7 +46,8 @@
 
 (defn -get-names
   [db key]
-  {:pre [(map? db)
+  {:pre [(or (nil? db)
+             (map? db))
          (keyword? key)]}
   (->> db
        key
@@ -47,7 +56,8 @@
 
 (defn -get-versions
   [m]
-  {:pre [(map? m)]}
+  {:pre [(or (nil? m)
+             (map? m))]}
   (->> m
        keys
        (apply hash-set)))
@@ -79,7 +89,8 @@
 
 (defn get-application-names
   [db]
-  {:pre [(map? db)]}
+  {:pre [(or (nil? db)
+             (map? db))]}
   (-get-names db :applications))
 
 (defn get-application-versions
@@ -197,11 +208,22 @@
                :env-name envname
                :env-version envver}))))
 
+;; -------------------- DATABASE --------------------
+
+(def DB (atom nil))
+
 ;; -------------------- ROUTING --------------------
 
+(defroutes application-routes
+  (GET "/" []
+       (response (get-application-names @DB)))
+  (GET "/test" [] (response ["testing" "aganai"])))
+
 (defroutes all-routes
-  (GET "/" [] "Hello world!")
-  (route/not-found "Not found :("))
+  (ringjson/wrap-json-response
+   (routes/context "/apps" [] application-routes)
+   (routes/GET "/" [] "Hello world3!"))
+  (croute/not-found "Not found :("))
 
 (def in-dev? true)
 

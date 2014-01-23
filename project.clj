@@ -10,7 +10,8 @@
                  [ring/ring-core "1.2.1"]
                  [compojure "1.1.6"]
                  [http-kit "2.0.0"]
-                 [javax.servlet/servlet-api "2.5"]]
+                 [javax.servlet/servlet-api "2.5"]
+                 [ring/ring-json "0.2.0"]]
   :main ^:skip-aot env-server.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

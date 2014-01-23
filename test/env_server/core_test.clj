@@ -22,9 +22,19 @@
     (testing "that map hashes are consistent"
       (let [v (-create-map-hash "name" {"one" "1" "two" "2" "three" "3"})]
         (is (= v
-               (-create-map-hash "name" {"three" "3" "two" "2" "one" "1"})))))))
+               (-create-map-hash "name" {"three" "3" "two" "2" "one" "1"})))))
+    (testing "that or-value returns the default if the second argument is nil"
+      (= 1
+         (-or-value 1 nil)))
+    (testing "that or-value returns the second argument if it is not nil"
+      (= 2
+         (-or-value 1 2)))))
 
 (deftest application-tests
+  (testing "That you can query the list of applications and get an empty list back for an empty db"
+    (let [res (get-application-names nil)]
+      (is (and (set? res)
+               (= 0 (count res))))))
   (testing "That you can create an application without specifying data"
     (is (-> nil
             (create-application "path/to/app")
