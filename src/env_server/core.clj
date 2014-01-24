@@ -77,7 +77,8 @@
 
 (defn -app-and-version-or-error
   [db name ver]
-  {:pre [(map? db)
+  {:pre [(or (nil? db)
+             (map? db))
          (string? name)
          (string? ver)]}
   (let [app (-app-or-error db name)]
@@ -216,9 +217,8 @@
 
 ;; -------------------- CUSTOM MIDDLEWARE --------------------
 
-(defn wrap-app-not-found-error
-  "Tries to catch errors with type :env-server.core/application-name-not-found and returns a decent 404 for those"
-  [handler]
+(defn -wrap-not-found-error
+  [handler error-type]
   (fn [request]
     (try+
      (handler request)
@@ -226,15 +226,32 @@
          #(and (map? %)
                (contains? % :type)
                (= (:type %)
-                  ::application-name-not-found))
+                  error-type))
          error
        (response/not-found error)))))
+
+(defn wrap-app-not-found-error
+  "Tries to catch errors with type :env-server.core/application-name-not-found and returns a decent 404 for those"
+  [handler]
+  (-wrap-not-found-error handler ::application-name-not-found))
+
+(defn wrap-app-version-not-found-error
+  "Tries to catch errors with type :env-server.core/application-version-not-found and returns a 404 instead"
+  [handler]
+  (-wrap-not-found-error handler ::application-version-not-found))
+
+(defn wrap-all-known-errors
+  "Wraps the known errors"
+  [handler]
+  (-> handler
+      wrap-app-not-found-error
+      wrap-app-version-not-found-error))
 
 ;; -------------------- ROUTING --------------------
 
 (compcore/defroutes application-routes
   (compcore/GET "/" [] (response/response (get-application-names @DB)))
-  (wrap-app-not-found-error
+  (wrap-all-known-errors
    (compcore/routes 
     (compcore/GET "/:name" [name] (response/response (get-application-versions @DB name)))
     (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings @DB name version)))))

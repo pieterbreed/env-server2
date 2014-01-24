@@ -189,5 +189,15 @@
               wrapped-handler (wrap-app-not-found-error handler)
               {:keys [status body]} (wrapped-handler nil)]
           (is (= 404 status))
+          (is (= body error))))
+      (testing "bad application version"
+        (let [error {:type :env-server.core/application-version-not-found,
+                     :app-name "name"
+                     :requested-version "version",
+                     :available-versions #{"one" "two"}}
+              handler (fn [r] (throw+ error))
+              wrapped-handler (wrap-app-version-not-found-error handler)
+              {:keys [status body]} (wrapped-handler nil)]
+          (is (= 404 status))
           (is (= body error)))))))
 
