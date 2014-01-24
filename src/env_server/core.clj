@@ -240,7 +240,7 @@
   [handler]
   (-wrap-not-found-error handler ::application-version-not-found))
 
-(defn wrap-all-known-errors
+(defn wrap-wellknown-errors
   "Wraps the known errors"
   [handler]
   (-> handler
@@ -251,7 +251,7 @@
 
 (compcore/defroutes application-routes
   (compcore/GET "/" [] (response/response (get-application-names @DB)))
-  (wrap-all-known-errors
+  (wrap-wellknown-errors
    (compcore/routes 
     (compcore/GET "/:name" [name] (response/response (get-application-versions @DB name)))
     (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings @DB name version)))))
