@@ -66,7 +66,8 @@
 
 (defn -app-or-error
   [db name]
-  {:pre [(map? db)
+  {:pre [(or (nil? db)
+             (map? db))
          (string? name)]}
   (if-let [res (get-in db [:applications name])]
     res
@@ -95,7 +96,8 @@
 
 (defn get-application-versions
   [db name]
-  {:pre [(map? db)
+  {:pre [(or (nil? db)
+             (map? db))
          (string? name)]}
   (let [app (-app-or-error db name)]
     (-get-versions app)))
@@ -215,8 +217,9 @@
 ;; -------------------- ROUTING --------------------
 
 (compcore/defroutes application-routes
-  (compcore/GET "/" []
-       (response (get-application-names @DB)))
+  (compcore/GET "/" [] (response (get-application-names @DB)))
+  (compcore/GET "/:name" [name] (response (get-application-versions @DB name)))
+  (compcore/GET "/:name/:version" [name version] (response (get-application-settings @DB name version)))
   (compcore/GET "/test" [] (response ["testing" "aganai"])))
 
 (compcore/defroutes all-routes

@@ -30,11 +30,19 @@
       (= 2
          (-or-value 1 2)))))
 
+(deftest empty-db-tests
+  (testing "That for an empty (nil) db you can"
+    (testing "query the list of applications and get an empty list back"
+      (let [res (get-application-names nil)]
+        (is (and (set? res)
+                 (= 0 (count res))))))
+
+    (testing "That you can query the versions of a non-existent application and get a meaningful error"
+      (let [res (thrown-map-as-value-or-error (get-application-versions nil "name"))]
+        (is (= :env-server.core/application-name-not-found
+               (:type  res)))))))
+
 (deftest application-tests
-  (testing "That you can query the list of applications and get an empty list back for an empty db"
-    (let [res (get-application-names nil)]
-      (is (and (set? res)
-               (= 0 (count res))))))
   (testing "That you can create an application without specifying data"
     (is (-> nil
             (create-application "path/to/app")

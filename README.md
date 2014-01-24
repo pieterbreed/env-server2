@@ -2,6 +2,20 @@
 
 A service for sane environment configuration.
 
+## Status: Not useful yet!
+
+## What is the problem?
+
+...that this software addresses
+
+## Facts
+
+## Context
+
+## Constraints
+
+## Similar solutions? 
+
 ## Features
 
  - Define things called applications, which are a specifications for configuration requirements of real (software) applications.
