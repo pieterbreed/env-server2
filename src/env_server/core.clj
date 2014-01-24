@@ -5,9 +5,9 @@
             [clojure.set :as set]
             [ring.middleware.reload :as reload]
             [ring.util.response :refer [response]]
-            [compojure.core :as routes]
-            [compojure.handler :as handler]
-            [compojure.route :as croute]
+            [compojure.core :as compcore]
+            [compojure.handler :as comphandler]
+            [compojure.route :as comproute]
             [org.httpkit.server :as httpkit]
             [ring.middleware.json :as ringjson])
   
@@ -214,16 +214,16 @@
 
 ;; -------------------- ROUTING --------------------
 
-(defroutes application-routes
-  (GET "/" []
+(compcore/defroutes application-routes
+  (compcore/GET "/" []
        (response (get-application-names @DB)))
-  (GET "/test" [] (response ["testing" "aganai"])))
+  (compcore/GET "/test" [] (response ["testing" "aganai"])))
 
-(defroutes all-routes
+(compcore/defroutes all-routes
   (ringjson/wrap-json-response
-   (routes/context "/apps" [] application-routes)
-   (routes/GET "/" [] "Hello world3!"))
-  (croute/not-found "Not found :("))
+   (compcore/context "/apps" [] application-routes)
+   (compcore/GET "/" [] "Hello world3!"))
+  (comproute/not-found "Not found :("))
 
 (def in-dev? true)
 
@@ -232,6 +232,6 @@
 (defn -main
   [& args]
   (let [handler (if in-dev?
-                  (reload/wrap-reload (handler/api #'all-routes))
-                  (handler/api all-routes))]
+                  (reload/wrap-reload (comphandler/api #'all-routes))
+                  (comphandler/api all-routes))]
     (httpkit/run-server handler {:port 9090})))
