@@ -228,14 +228,16 @@
                (= (:type %)
                   ::application-name-not-found))
          error
-       (response/not-found "Look! I'm a 404!")))))
+       (response/not-found error)))))
 
 ;; -------------------- ROUTING --------------------
 
 (compcore/defroutes application-routes
   (compcore/GET "/" [] (response/response (get-application-names @DB)))
-  (compcore/GET "/:name" [name] (response/response (get-application-versions @DB name)))
-  (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings @DB name version)))
+  (wrap-app-not-found-error
+   (compcore/routes 
+    (compcore/GET "/:name" [name] (response/response (get-application-versions @DB name)))
+    (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings @DB name version)))))
   (compcore/GET "/test" [] (response/response ["testing" "aganai"])))
 
 (compcore/defroutes all-routes

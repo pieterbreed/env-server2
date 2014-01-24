@@ -187,7 +187,7 @@
                      :available-app-names #{"one" "two"}}
               handler (fn [r] (throw+ error))
               wrapped-handler (wrap-app-not-found-error handler)
-              {:keys [status]} (wrapped-handler nil)]
-          (is (= 404
-                 status)))))))
+              {:keys [status body]} (wrapped-handler nil)]
+          (is (= 404 status))
+          (is (= body error)))))))
 
