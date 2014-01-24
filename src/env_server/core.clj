@@ -1,10 +1,10 @@
 (ns env-server.core
   (:require [clojure.string :as str]
             [digest :as digest]
-            [slingshot.slingshot :refer [throw+]]
+            [slingshot.slingshot :refer [throw+ try+]]
             [clojure.set :as set]
             [ring.middleware.reload :as reload]
-            [ring.util.response :refer [response]]
+            [ring.util.response :as response]
             [compojure.core :as compcore]
             [compojure.handler :as comphandler]
             [compojure.route :as comproute]
@@ -214,13 +214,29 @@
 
 (def DB (atom nil))
 
+;; -------------------- CUSTOM MIDDLEWARE --------------------
+
+(defn wrap-app-not-found-error
+  "Tries to catch errors with type :env-server.core/application-name-not-found and returns a decent 404 for those"
+  [handler]
+  (fn [request]
+    (try+
+     (handler request)
+     (catch
+         #(and (map? %)
+               (contains? % :type)
+               (= (:type %)
+                  ::application-name-not-found))
+         error
+       (response/not-found "Look! I'm a 404!")))))
+
 ;; -------------------- ROUTING --------------------
 
 (compcore/defroutes application-routes
-  (compcore/GET "/" [] (response (get-application-names @DB)))
-  (compcore/GET "/:name" [name] (response (get-application-versions @DB name)))
-  (compcore/GET "/:name/:version" [name version] (response (get-application-settings @DB name version)))
-  (compcore/GET "/test" [] (response ["testing" "aganai"])))
+  (compcore/GET "/" [] (response/response (get-application-names @DB)))
+  (compcore/GET "/:name" [name] (response/response (get-application-versions @DB name)))
+  (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings @DB name version)))
+  (compcore/GET "/test" [] (response/response ["testing" "aganai"])))
 
 (compcore/defroutes all-routes
   (ringjson/wrap-json-response

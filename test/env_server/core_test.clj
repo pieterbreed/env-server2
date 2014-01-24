@@ -178,3 +178,16 @@
                                   ["app" appv]
                                   ["env" envv]))))))
 
+(deftest custom-error-to-response-middleware-tests
+  (testing "That when requests are made for invalid objects good HTTP statusses are returned: "
+    (testing "404 for"
+      (testing "application name that has not been defined"
+        (let [error {:type :env-server.core/application-name-not-found,
+                     :requested-app-name "name",
+                     :available-app-names #{"one" "two"}}
+              handler (fn [r] (throw+ error))
+              wrapped-handler (wrap-app-not-found-error handler)
+              {:keys [status]} (wrapped-handler nil)]
+          (is (= 404
+                 status)))))))
+
