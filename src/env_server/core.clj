@@ -213,6 +213,17 @@
 
 ;; -------------------- DATABASE --------------------
 
+(defmulti get-db-value :backing-type)
+
+(defn create-in-memory-backing-store
+  "Creates a backing store that is an atom"
+  [v]
+  {:backing-type :in-memory
+   :value (atom v)})
+
+(defmethod get-db-value :in-memory [v]
+  (-> v :value deref))
+
 (def DB (atom nil))
 
 ;; -------------------- CUSTOM MIDDLEWARE --------------------

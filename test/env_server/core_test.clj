@@ -201,3 +201,8 @@
           (is (= 404 status))
           (is (= body error)))))))
 
+(deftest database-interface-tests
+  (testing "That the memory interface works with database values"
+    (let [memory (create-in-memory-backing-store nil)]
+      (is (= nil (get-db-value memory))))))
+
