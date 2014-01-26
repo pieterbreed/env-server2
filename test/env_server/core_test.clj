@@ -28,7 +28,10 @@
          (-or-value 1 nil)))
     (testing "that or-value returns the second argument if it is not nil"
       (= 2
-         (-or-value 1 2)))))
+         (-or-value 1 2)))
+    (testing "that the -db-curry works"
+      (is (= 1 ((-db-curry + 1) 0)))
+      (is (= 6 ((-db-curry + 1) 5))))))
 
 (deftest empty-db-tests
   (testing "That for an empty (nil) db you can"
@@ -203,6 +206,11 @@
 
 (deftest database-interface-tests
   (testing "That the memory interface works with database values"
-    (let [memory (create-in-memory-backing-store nil)]
-      (is (= nil (get-db-value memory))))))
+    (let [memory (create-in-memory-backing-store nil)
+          dbres (add-application-settings nil "name" #{"test"})]
+      (is (= nil (get-db-value memory)))
+      (is (= dbres ((-db-curry add-application-settings "name" #{"test"}) nil)))
+      (is (= dbres (->> (-db-curry add-application-settings "name" #{"test"}) ;; fails because app-app-settings returns a vector
+                        (modify-db-value memory)
+                        get-db-value))))))
 

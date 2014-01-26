@@ -15,6 +15,14 @@
 
 ;; -------------------- UTILS --------------------
 
+(defn -db-curry
+  "Used with the change db functions. Takes a function and some arguments and returns a func that takes one argument. The list of arguments is curried to the given function. The result fn takes one argument, this will be the first argument. This is useful to turn all of the db-change functions into function that can operate on a db value
+
+Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
+  [f & args]
+  (fn [db]
+    (apply f db args)))
+
 (defn -or-value
   "Returns the default (first) parameter's value if the second is nil, else the second param value"
   [d v]
@@ -211,9 +219,14 @@
                :env-name envname
                :env-version envver}))))
 
-;; -------------------- DATABASE --------------------
+;; -------------------- DATABASE INTERFACE --------------------
 
 (defmulti get-db-value :backing-type)
+(defmulti modify-db-value :backing-type)
+
+;; -------------------- DATABASE IMPLEMENTATIONS --------------------
+
+;; -------------------- IN-MEMORY --------------------
 
 (defn create-in-memory-backing-store
   "Creates a backing store that is an atom"
@@ -223,6 +236,12 @@
 
 (defmethod get-db-value :in-memory [v]
   (-> v :value deref))
+
+(defmethod modify-db-value :in-memory [v changefn]
+  "Change the value of the db by passing it through changefn. The result is the new value of the db"
+  (assoc v :value (swap! (:value v) changefn)))
+
+;; -------------------- NOT SURE WHAT NEXT --------------------
 
 (def DB (atom nil))
 
