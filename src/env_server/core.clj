@@ -224,6 +224,10 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
 (defmulti get-db-value :backing-type)
 (defmulti modify-db-value :backing-type)
 
+(defn wrap-update-fn
+  [db changef]
+  nil)
+
 ;; -------------------- DATABASE IMPLEMENTATIONS --------------------
 
 ;; -------------------- IN-MEMORY --------------------
