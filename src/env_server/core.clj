@@ -13,6 +13,16 @@
   
   (:gen-class))
 
+;; -------------------- DATABASE INTERFACE --------------------
+
+(defmulti get-db-value
+  "Gets/refreshes the database value from the backing store."
+  :backing-type)
+(defmulti modify-db-value
+  "Takes two parameters, the first, a vector, describing the key to set similar to assoc-in, the second the value to set"
+  (fn [db path value]
+    (:backing-type db)))
+
 ;; -------------------- UTILS --------------------
 
 (defn -db-curry
@@ -99,42 +109,41 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
 
 (defn get-application-names
   [db]
-  {:pre [(or (nil? db)
-             (map? db))]}
-  (-get-names db :applications))
+  {:pre [(contains? db :backing-type)]}
+  (-get-names (get-db-value db) :applications))
 
 (defn get-application-versions
   [db name]
-  {:pre [(or (nil? db)
-             (map? db))
+  {:pre [(contains? db :backing-type)
          (string? name)]}
-  (let [app (-app-or-error db name)]
-    (-get-versions app)))
+  (-> (get-db-value db)
+      (-app-or-error name)
+      -get-versions))
 
 (defn add-application-settings
   [db name settings]
-  {:pre [(or (nil? db)
-             (map? db))
+  {:pre [(contains? db :backing-type)
          (string? name)
          (or (set? settings)
              (nil? settings))]}
   (let [effective-settings (or settings #{})
         v (-create-set-hash name effective-settings)]
-    (-> db
-        (assoc-in [:applications name v] {:settings effective-settings})
-        (vector v))))
+    (modify-db-value db [:applications name v] {:settings effective-settings})
+    v))
 
 (defn create-application
   ([db name]
-     (-> db
-         (add-application-settings name nil)))
+     {:pre [(contains? db :backing-type)]}
+     (add-application-settings db name nil))
   ([db name settings]
-     (-> db
-         (add-application-settings name settings))))
+     (add-application-settings db name settings)))
 
 (defn get-application-settings
   [db name version]
-  (let [app (-app-and-version-or-error db name version)]
+  {:pre [(contains? db :backing-type)
+         (string? name)
+         (string? version)]}
+  (let [app (-app-and-version-or-error (get-db-value db) name version)]
     (:settings app)))
 
 ;; -------------------- ENVIRONMENTS --------------------
@@ -219,14 +228,6 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
                :env-name envname
                :env-version envver}))))
 
-;; -------------------- DATABASE INTERFACE --------------------
-
-(defmulti get-db-value :backing-type)
-(defmulti modify-db-value :backing-type)
-
-(defn wrap-update-fn
-  [db changef]
-  nil)
 
 ;; -------------------- DATABASE IMPLEMENTATIONS --------------------
 
@@ -238,12 +239,12 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
   {:backing-type :in-memory
    :value (atom v)})
 
-(defmethod get-db-value :in-memory [v]
-  (-> v :value deref))
+(defmethod get-db-value :in-memory [db]
+  (-> db :value deref))
 
-(defmethod modify-db-value :in-memory [v changefn]
+(defmethod modify-db-value :in-memory [db keys value]
   "Change the value of the db by passing it through changefn. The result is the new value of the db"
-  (assoc v :value (swap! (:value v) changefn)))
+  (swap! (:value db) #(assoc-in % keys value)))
 
 ;; -------------------- NOT SURE WHAT NEXT --------------------
 

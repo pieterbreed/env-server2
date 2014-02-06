@@ -33,67 +33,74 @@
       (is (= 1 ((-db-curry + 1) 0)))
       (is (= 6 ((-db-curry + 1) 5))))))
 
+;; all of the tests assume the in-memory database (for now)
+
 (deftest empty-db-tests
   (testing "That for an empty (nil) db you can"
     (testing "query the list of applications and get an empty list back"
-      (let [res (get-application-names nil)]
+      (let [db (create-in-memory-backing-store nil)
+            res (get-application-names db)]
         (is (and (set? res)
                  (= 0 (count res))))))
 
     (testing "That you can query the versions of a non-existent application and get a meaningful error"
-      (let [res (thrown-map-as-value-or-error (get-application-versions nil "name"))]
+      (let [db (create-in-memory-backing-store nil)
+            res (thrown-map-as-value-or-error (get-application-versions db "name"))]
         (is (= :env-server.core/application-name-not-found
                (:type  res)))))))
 
 (deftest application-tests
   (testing "That you can create an application without specifying data"
-    (is (-> nil
-            (create-application "path/to/app")
-            nil?
-            not)))
+    (let [db (create-in-memory-backing-store nil)]
+      (is (-> db
+              (create-application "path/to/app")
+              nil?
+              not))))
 
   (testing "That you can create an application and specify simple data"
-    (is (-> nil
-            (create-application "path/to/app"
-                                #{"key1" "key2"}))))
+    (let [db (create-in-memory-backing-store nil)]
+      (is (-> db
+              (create-application "path/to/app"
+                                  #{"key1" "key2"})))))
   
   (testing "When you create an application you can retrieve versions for it"
-    (is (-> nil
-            (create-application "path/to/app")
-            first
-            (get-application-versions "path/to/app")
-            count
-            (= 1))))
+    (let [db (create-in-memory-backing-store nil)]
+      (do
+        (create-application db "path/to/app"))
+      (is (-> (get-application-versions db "path/to/app")
+              count
+              (= 1)))))
 
   (testing "When you create an app without data, you can add data later"
-    (is (-> nil
-            (create-application "path/to/app")
-            first
-            (add-application-settings "path/to/app" #{"one" "two" "three"}))))
+    (let [db (create-in-memory-backing-store nil)]
+      (do
+        (create-application db "path/to/app")
+        (add-application-settings db "path/to/app" #{"one" "two" "three"}))))
 
   (testing "When an application has settings they can be retrieved later"
     (let [settings #{"one" "two" "three"}
           name "path/to/app"
-          version (-create-set-hash name settings)]
+          version (-create-set-hash name settings)
+          db (create-in-memory-backing-store nil)]
+      (do
+        (create-application db name settings))
       (is (= settings
-             (-> nil
-                 (create-application name settings)
-                 first
-                 (get-application-settings name version))))))
+             (get-application-settings db name version)))))
 
   (testing "Expect errors when requesting"
-    (let [[db appver] (create-application nil "app" #{"one" "two"})
-          err-type :env-server.core/application-name-not-found]
+    (let [db (create-in-memory-backing-store nil)
+          err-type :env-server.core/application-name-not-found
+          appver (create-application db "app" #{"one" "two"})]
       (testing "unset applications"
         (is (= err-type
                (-> (get-application-versions db "test")
                    thrown-map-as-value-or-error
-                   :type))))
-      (testing "bad versions of good applications"
-        (is (= err-type
-               (-> (get-application-settings db "test" "fake_version")
-                   thrown-map-as-value-or-error
-                   :type)))))))
+                   :type)))
+        (testing "bad versions of good applications"
+          (is (= err-type
+                 (-> (get-application-settings db "test" "fake_version")
+                     thrown-map-as-value-or-error
+                     :type))))))))
 
 
 (deftest environment-tests
@@ -149,11 +156,12 @@
 
 (deftest realizing-of-applications-in-environments
   (testing "that if the environment has all the settings as keys then the application is realized in that environment"
-    (let [[db1 appv] (create-application nil "app" #{"key1" "key2"})
-          [db2 envv] (create-environment db1 "env" {"key1" "value1"
-                                                    "key2" "value2"}
-                                         nil)]
-      (is (-> (realize-application db2 ["app" appv] ["env" envv])
+    (let [db (create-in-memory-backing-store nil)
+          appv (create-application db "app" #{"key1" "key2"})
+          envv (create-environment db "env" {"key1" "value1"
+                                             "key2" "value2"}
+                                   nil)]
+      (is (-> (realize-application db ["app" appv] ["env" envv])
               (= {"key1" "value1"
                   "key2" "value2"})))))
   (testing "that if the env does not have all of the keys for the app, then an error is raised"
@@ -206,11 +214,5 @@
 
 (deftest database-interface-tests
   (testing "That the memory interface works with database values"
-    (let [memory (create-in-memory-backing-store nil)
-          dbres (add-application-settings nil "name" #{"test"})]
-      (is (= nil (get-db-value memory)))
-      (is (= dbres ((-db-curry add-application-settings "name" #{"test"}) nil)))
-      (is (= dbres (->> (-db-curry add-application-settings "name" #{"test"}) ;; fails because app-app-settings returns a vector
-                        (modify-db-value memory)
-                        get-db-value))))))
+    (let [memdb (create-in-memory-backing-store nil)])))
 
