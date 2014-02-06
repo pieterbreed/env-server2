@@ -173,46 +173,46 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
 
 (defn get-environment-names
   [db]
-  {:pre [(map? db)]}
-  (-get-names db :environments))
+  {:pre [(contains? db :backing-type)]}
+  (-get-names (get-db-value db) :environments))
 
 (defn get-environment-versions
   [db name]
-  {:pre [(map? db)
+  {:pre [(contains? db :backing-type)
          (string? name)]}
-  (let [env (-env-or-error db name)]
+  (let [env (-env-or-error (get-db-value db) name)]
     (-get-versions env)))
 
 (defn get-environment-data
   [db name v]
-  {:pre [(map? db)
+  {:pre [(contains? db :backing-type)
          (string? name)
          (string? v)]}
-  (-env-and-version-or-error db name v))
+  (-env-and-version-or-error (get-db-value db) name v))
 
 (defn create-environment
   [db name kvps base]
-  {:pre [(or (map? db)
-             (nil? db))
+  {:pre [(contains? db :backing-type)
          (map? kvps)
          (string? name)
          (or (nil? base)
              (and (vector? base)
                   (string? (first base))
                   (string? (second base))))]}
-  (let [base-data (if-let [[bname bver] base]
-                    (get-environment-data db bname bver)
+  (let [dbval (get-db-value db)
+        base-data (if-let [[bname bver] base]
+                    (-env-and-version-or-error dbval bname bver)
                     {})
         effective-data (merge base-data kvps)
         v (-create-map-hash name effective-data)]
-    (vector 
-     (-> db
-         (assoc-in [:environments name v] effective-data))
-     v)))
+    (modify-db-value db [:environments name v] effective-data)
+    v))
 
 (defn realize-application
   "Realizes an application in an environment if its possible. IE, provides values for all of the keys that the application requires or throws an error"
   [db [appname appver] [envname envver]]
+  {:pre [(contains? db :backing-type)
+         ()]}
   (let [app-settings (get-application-settings db appname appver)
         data (-> (get-environment-data db envname envver)
                  (select-keys app-settings))
