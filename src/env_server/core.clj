@@ -25,6 +25,11 @@
 
 ;; -------------------- UTILS --------------------
 
+(defn strings?
+  "Returns true if all items in the seq are strings false if not. Calls seq on the argument"
+  [s]
+  (nil? (some #(not (string? %)) (seq  s))))
+
 (defn -db-curry
   "Used with the change db functions. Takes a function and some arguments and returns a func that takes one argument. The list of arguments is curried to the given function. The result fn takes one argument, this will be the first argument. This is useful to turn all of the db-change functions into function that can operate on a db value
 
@@ -212,7 +217,7 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
   "Realizes an application in an environment if its possible. IE, provides values for all of the keys that the application requires or throws an error"
   [db [appname appver] [envname envver]]
   {:pre [(contains? db :backing-type)
-         ()]}
+         (strings? [appname appver envname envver])]}
   (let [app-settings (get-application-settings db appname appver)
         data (-> (get-environment-data db envname envver)
                  (select-keys app-settings))

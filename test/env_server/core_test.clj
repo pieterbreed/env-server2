@@ -31,7 +31,17 @@
          (-or-value 1 2)))
     (testing "that the -db-curry works"
       (is (= 1 ((-db-curry + 1) 0)))
-      (is (= 6 ((-db-curry + 1) 5))))))
+      (is (= 6 ((-db-curry + 1) 5))))
+
+    (testing "that strings? returns true if all are strings"
+      (is (= true (strings? '("a" "b" "c" "d"))))
+      (is (= true (strings? ["a" "b" "c" "d"])))
+      (is (= true (strings? #{"a" "b" "c" "d"}))))
+
+    (testing "that strings? returns false if at least one item is not a string"
+      (is (= false (strings? '("a" "b" "c" 1 "d"))))
+      (is (= false (strings? ["a" "b" "c" 2 "d"])))
+      (is (= false (strings? #{"a" "b" "c" 3 "d"}))))))
 
 ;; all of the tests assume the in-memory database (for now)
 
@@ -105,9 +115,10 @@
 
 (deftest environment-tests
   (testing "That environments can be added to a new db"
-    (let [[db v] (create-environment nil "name" {"key1" "value1"
-                                                 "key2" "value2"}
-                                     nil)]
+    (let [db (create-in-memory-backing-store nil)
+          v1 (create-environment db "name" {"key1" "value1"
+                                            "key2" "value2"}
+                                 nil)]
       (is (-> db
               get-environment-names
               count
@@ -118,25 +129,27 @@
               (= 1)))))
 
   (testing "That environments can be added and based on other environments"
-    (let [[db1 v1] (create-environment nil "name1" {"key1" "value1"} nil)
-          [db2 v2] (create-environment db1 "name2" {"key2" "value2"} ["name1" v1])]
-      (is (not (nil? db2)))
+    (let [db (create-in-memory-backing-store nil)
+          v1 (create-environment db "name1" {"key1" "value1"} nil)
+          v2 (create-environment db "name2" {"key2" "value2"} ["name1" v1])]
       (is ( = {"key1" "value1"
                "key2" "value2"}
-              (get-environment-data db2 "name2" v2)))))
+              (get-environment-data db "name2" v2)))))
 
   (testing "That created environments has their own data and values"
     (let [name "name"
           kvps {"key1" "value1"
                 "key2" "value2"}
-          [db v] (create-environment nil name kvps nil)]
+          db (create-in-memory-backing-store nil)
+          v (create-environment db name kvps nil)]
       (is (= (get-environment-data db name v)
              kvps))))
 
   (testing "Expect errors when requesting"
     (testing "bad environment name from"
-      (let [[db0 appver] (create-application nil "app" #{"one" "two"})
-            [db envver] (create-environment db0 "env" {"one" "1" "two" "2"} nil)
+      (let [db (create-in-memory-backing-store nil)
+            appver (create-application db "app" #{"one" "two"})
+            envver (create-environment db "env" {"one" "1" "two" "2"} nil)
             expected-exception-type :env-server.core/environment-name-not-found]
         (testing "get-environment-versions"
           (is (= expected-exception-type
@@ -165,27 +178,29 @@
               (= {"key1" "value1"
                   "key2" "value2"})))))
   (testing "that if the env does not have all of the keys for the app, then an error is raised"
-        (let [[db1 appv] (create-application nil "app" #{"key1" "key2" "key3"})
-              [db2 envv] (create-environment db1 "env" {"key1" "value1"
-                                                        "key2" "value2"}
-                                             nil)]
+    (let [db (create-in-memory-backing-store nil)
+          appv (create-application db "app" #{"key1" "key2" "key3"})
+          envv (create-environment db "env" {"key1" "value1"
+                                              "key2" "value2"}
+                                   nil)]
           (is (= :env-server.core/app-not-realizable-in-environment
                  (try+
-                  (realize-application db2
+                  (realize-application db
                                        ["app" appv]
                                        ["env" envv])
                   (catch [:type :env-server.core/app-not-realizable-in-environment] {:keys [type]}
                     type))))))
 
   (testing "that the realized application gets only the keys it requires"
-    (let [[db1 appv] (create-application nil "app" #{"key2" "key3"})
-          [db2 envv] (create-environment db1 "env" {"key1" "1"
-                                                    "key2" "2"
-                                                    "key3" "3"}
-                                         nil)]
+    (let [db (create-in-memory-backing-store nil)
+          appv (create-application db "app" #{"key2" "key3"})
+          envv (create-environment db "env" {"key1" "1"
+                                             "key2" "2"
+                                             "key3" "3"}
+                                   nil)]
       (is (= {"key2" "2"
               "key3" "3"}
-             (realize-application db2
+             (realize-application db
                                   ["app" appv]
                                   ["env" envv]))))))
 
