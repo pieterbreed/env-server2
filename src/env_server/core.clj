@@ -306,6 +306,20 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
            (response/content-type "text/plain")
            (response/status 400))))))
 
+(defn wrap-app-not-realizable-in-environment-error
+  [handler]
+  (fn [req]
+    (try+
+     (handler req)
+     (catch #(and (map? %)
+                  (contains? % :type)
+                  (= ::app-not-realizable-in-environment (:type %)))
+         error
+       (-> (response/response (str "Application cannot be realized in this environment The following keys are missng: "
+                                   (reduce str (:missing-keys error))))
+           (response/content-type "text/plain")
+           (response/status 400))))))
+
 (defn wrap-wellknown-errors
   "Wraps the known errors"
   [handler]
@@ -314,7 +328,8 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
       wrap-app-version-not-found-error
       wrap-env-not-found-error
       wrap-env-version-not-found-error
-      wrap-bad-request-error))
+      wrap-bad-request-error
+      wrap-app-not-realizable-in-environment-error))
 
 (defn wrap-formats
   "Wraps the different formats of the response and request objects"
@@ -351,42 +366,44 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
 
 
 (compcore/defroutes application-routes
-  (wrap-wellknown-errors
-   (compcore/routes
-    (compcore/GET "/" [] (response/response (get-application-names DB)))
-    (compcore/GET "/:name" [name] (response/response (get-application-versions DB name)))
-    (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings DB name version)))
-    (compcore/POST "/:name" [name :as {settings :body-params :as request-map}]
-                   (let [settings (guard-parameter-string-set settings)
-                         version (create-application DB name settings)
-                         url (str (request/request-url request-map)
-                                  "/"
-                                  version)]
-                     (-> (response/redirect-after-post url)
-                         (assoc :body url)))))))
+  (compcore/routes
+   (compcore/GET "/" [] (response/response (get-application-names DB)))
+   (compcore/GET "/:name" [name] (response/response (get-application-versions DB name)))
+   (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings DB name version)))
+   (compcore/POST "/:name" [name :as {settings :body-params :as request-map}]
+                  (let [settings (guard-parameter-string-set settings)
+                        version (create-application DB name settings)
+                        url (str (request/request-url request-map)
+                                 "/"
+                                 version)]
+                    (-> (response/redirect-after-post url)
+                        (assoc :body url))))))
 
 (compcore/defroutes environment-routes
-  (wrap-wellknown-errors
-   (compcore/routes
-    (compcore/GET "/" [] (response/response (get-environment-names DB)))
-    (compcore/GET "/:name" [name] (response/response (get-environment-versions DB name)))
-    (compcore/GET "/:name/:version" [name version] (response/response (get-environment-data DB name version)))
-    (compcore/POST "/:name" [name :as {kvps :body-params :as request-map}]
-                   (let [kvps (guard-parameter-strings-map kvps)
-                         version (create-environment DB name kvps nil)
-                         url (str (request/request-url request-map)
-                                  "/"
-                                  version)]
-                     (-> (response/redirect-after-post url)
-                         (assoc :body url))))
-    )))
+  (compcore/routes
+   (compcore/GET "/" [] (response/response (get-environment-names DB)))
+   (compcore/GET "/:name" [name] (response/response (get-environment-versions DB name)))
+   (compcore/GET "/:name/:version" [name version] (response/response (get-environment-data DB name version)))
+   (compcore/POST "/:name" [name :as {kvps :body-params :as request-map}]
+                  (let [kvps (guard-parameter-strings-map kvps)
+                        version (create-environment DB name kvps nil)
+                        url (str (request/request-url request-map)
+                                 "/"
+                                 version)]
+                    (-> (response/redirect-after-post url)
+                        (assoc :body url))))))
 
 (compcore/defroutes all-routes
-  (wrap-formats
-   (compcore/routes
-    (compcore/context "/apps" [] application-routes)
-    (compcore/context "/env" [] environment-routes)
-    (compcore/GET "/" [] "Hello world3!")))
+  (wrap-wellknown-errors
+   (wrap-formats
+    (compcore/routes
+     (compcore/context "/apps" [] application-routes)
+     (compcore/context "/env" [] environment-routes)
+     (compcore/GET "/realize/:app/:appver/in/:environment/:envver"
+                   [app appver environment envver]
+                   (response/response 
+                    (realize-application DB [app appver] [environment envver])))
+     (compcore/GET "/" [] "Hello world3!"))))
   (comproute/not-found "Not found :("))
 
 (def in-dev? true)
