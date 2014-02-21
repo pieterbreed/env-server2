@@ -9,7 +9,8 @@
             [compojure.handler :as comphandler]
             [compojure.route :as comproute]
             [org.httpkit.server :as httpkit]
-            [ring.middleware.json :as ringjson])
+            [ring.middleware.json :as ringjson]
+            [ring.middleware.format :as format])
   
   (:gen-class))
 
@@ -253,7 +254,7 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
 
 ;; -------------------- NOT SURE WHAT NEXT --------------------
 
-(def DB (atom nil))
+(defonce DB (create-in-memory-backing-store nil))
 
 ;; -------------------- CUSTOM MIDDLEWARE --------------------
 
@@ -280,27 +281,66 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
   [handler]
   (-wrap-not-found-error handler ::application-version-not-found))
 
+(defn wrap-bad-request-error
+  "Turns any ::bad-request exceptions into 500s"
+  [handler]
+  (fn [req]
+    (try+
+     (handler req)
+     (catch #(and (map? %)
+                  (contains? % :type)
+                  (= ::bad-request (:type %)))
+         error
+       (-> (response/response (:message error))
+           (response/content-type "text/plain")
+           (response/status 400))))))
+
 (defn wrap-wellknown-errors
   "Wraps the known errors"
   [handler]
   (-> handler
       wrap-app-not-found-error
-      wrap-app-version-not-found-error))
+      wrap-app-version-not-found-error
+      wrap-bad-request-error))
+
+(defn wrap-formats
+  "Wraps the different formats of the response and request objects"
+  [handler]
+  (fn [req]
+    (let [new-handler (format/wrap-restful-format handler :formats [:json :yaml])]
+      (new-handler req))))
+
+(defn guard-parameter-string-set
+  "validate that the parameter can be turned into a set that contains only strings"
+  [p]
+  (clojure.pprint/pprint p)
+  (clojure.pprint/pprint (coll? p))
+  (let [is-valid (and (coll? p)
+                      (every? string? p))]
+    (if (not is-valid)
+      (throw+ {:type ::bad-request
+               :message "The body must contain a sequence of string values"})
+      (set p))))
 
 ;; -------------------- ROUTING --------------------
 
+
 (compcore/defroutes application-routes
-  (compcore/GET "/" [] (response/response (get-application-names @DB)))
+  (compcore/GET "/" [] (response/response (get-application-names DB)))
   (wrap-wellknown-errors
    (compcore/routes 
-    (compcore/GET "/:name" [name] (response/response (get-application-versions @DB name)))
-    (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings @DB name version)))))
+    (compcore/GET "/:name" [name] (response/response (get-application-versions DB name)))
+    (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings DB name version)))
+    (compcore/POST "/:name" [name :as {settings :body-params}]
+                   (let [settings (guard-parameter-string-set settings)]
+                     (create-application DB name settings)))))
   (compcore/GET "/test" [] (response/response ["testing" "aganai"])))
 
 (compcore/defroutes all-routes
-  (ringjson/wrap-json-response
-   (compcore/context "/apps" [] application-routes)
-   (compcore/GET "/" [] "Hello world3!"))
+  (wrap-formats
+   (compcore/routes
+    (compcore/context "/apps" [] application-routes)
+    (compcore/GET "/" [] "Hello world3!")))
   (comproute/not-found "Not found :("))
 
 (def in-dev? true)
