@@ -201,6 +201,8 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
   [db name kvps base]
   {:pre [(contains? db :backing-type)
          (map? kvps)
+         (every? string? (keys kvps))
+         (every? string? (vals kvps))
          (string? name)
          (or (nil? base)
              (and (vector? base)
@@ -282,6 +284,14 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
   [handler]
   (-wrap-not-found-error handler ::application-version-not-found))
 
+(defn wrap-env-not-found-error
+  [handler]
+  (-wrap-not-found-error handler ::environment-name-not-found))
+
+(defn wrap-env-version-not-found-error
+  [handler]
+  (-wrap-not-found-error handler ::environment-version-not-found))
+
 (defn wrap-bad-request-error
   "Turns any ::bad-request exceptions into 500s"
   [handler]
@@ -302,6 +312,8 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
   (-> handler
       wrap-app-not-found-error
       wrap-app-version-not-found-error
+      wrap-env-not-found-error
+      wrap-env-version-not-found-error
       wrap-bad-request-error))
 
 (defn wrap-formats
@@ -310,6 +322,18 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
   (fn [req]
     (let [new-handler (format/wrap-restful-format handler :formats [:json :yaml])]
       (new-handler req))))
+
+(defn guard-parameter-strings-map
+  "validate that both keys and values are strings in the map parameter"
+  [m]
+  (let [is-valid (or (nil? m)
+                     (and (map? m)
+                          (every? string? (keys m))
+                          (every? string? (vals m))))]
+    (if (not is-valid)
+      (throw+ {:type ::bad-request
+               :message "The body must be a key-value map of strings for keys and values"})
+      m)))
 
 (defn guard-parameter-string-set
   "validate that the parameter can be turned into a set that contains only strings"
@@ -327,22 +351,41 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
 
 
 (compcore/defroutes application-routes
-  (compcore/GET "/" [] (response/response (get-application-names DB)))
   (wrap-wellknown-errors
-   (compcore/routes 
+   (compcore/routes
+    (compcore/GET "/" [] (response/response (get-application-names DB)))
     (compcore/GET "/:name" [name] (response/response (get-application-versions DB name)))
     (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings DB name version)))
     (compcore/POST "/:name" [name :as {settings :body-params :as request-map}]
                    (let [settings (guard-parameter-string-set settings)
-                         version (create-application DB name settings)]
-                     (response/redirect-after-post (str (request/request-url request-map)
-                                                        "/"
-                                                        version)))))))
+                         version (create-application DB name settings)
+                         url (str (request/request-url request-map)
+                                  "/"
+                                  version)]
+                     (-> (response/redirect-after-post url)
+                         (assoc :body url)))))))
+
+(compcore/defroutes environment-routes
+  (wrap-wellknown-errors
+   (compcore/routes
+    (compcore/GET "/" [] (response/response (get-environment-names DB)))
+    (compcore/GET "/:name" [name] (response/response (get-environment-versions DB name)))
+    (compcore/GET "/:name/:version" [name version] (response/response (get-environment-data DB name version)))
+    (compcore/POST "/:name" [name :as {kvps :body-params :as request-map}]
+                   (let [kvps (guard-parameter-strings-map kvps)
+                         version (create-environment DB name kvps nil)
+                         url (str (request/request-url request-map)
+                                  "/"
+                                  version)]
+                     (-> (response/redirect-after-post url)
+                         (assoc :body url))))
+    )))
 
 (compcore/defroutes all-routes
   (wrap-formats
    (compcore/routes
     (compcore/context "/apps" [] application-routes)
+    (compcore/context "/env" [] environment-routes)
     (compcore/GET "/" [] "Hello world3!")))
   (comproute/not-found "Not found :("))
 
