@@ -5,6 +5,7 @@
             [clojure.set :as set]
             [ring.middleware.reload :as reload]
             [ring.util.response :as response]
+            [ring.util.request :as request]
             [compojure.core :as compcore]
             [compojure.handler :as comphandler]
             [compojure.route :as comproute]
@@ -313,10 +314,10 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
 (defn guard-parameter-string-set
   "validate that the parameter can be turned into a set that contains only strings"
   [p]
-  (clojure.pprint/pprint p)
-  (clojure.pprint/pprint (coll? p))
-  (let [is-valid (and (coll? p)
-                      (every? string? p))]
+  (let [is-valid (or
+                  (nil? p)
+                  (and (coll? p)
+                       (every? string? p)))]
     (if (not is-valid)
       (throw+ {:type ::bad-request
                :message "The body must contain a sequence of string values"})
@@ -331,10 +332,12 @@ Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
    (compcore/routes 
     (compcore/GET "/:name" [name] (response/response (get-application-versions DB name)))
     (compcore/GET "/:name/:version" [name version] (response/response (get-application-settings DB name version)))
-    (compcore/POST "/:name" [name :as {settings :body-params}]
-                   (let [settings (guard-parameter-string-set settings)]
-                     (create-application DB name settings)))))
-  (compcore/GET "/test" [] (response/response ["testing" "aganai"])))
+    (compcore/POST "/:name" [name :as {settings :body-params :as request-map}]
+                   (let [settings (guard-parameter-string-set settings)
+                         version (create-application DB name settings)]
+                     (response/redirect-after-post (str (request/request-url request-map)
+                                                        "/"
+                                                        version)))))))
 
 (compcore/defroutes all-routes
   (wrap-formats
