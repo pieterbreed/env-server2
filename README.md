@@ -14,7 +14,11 @@ A service for sane environment configuration.
 
 ## Constraints
 
-## Similar solutions? 
+## Similar solutions?
+
+## What are the problems? (that I know of)
+
+ - shortcomings?
 
 ## Features
 
