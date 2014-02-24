@@ -41,23 +41,39 @@ Other things that can go into this list could possibly be:
 
 ## Similar solutions?
 
-[This project (escservesconfig)](https://code.google.com/p/escservesconfig/) by some Thoughtworks guys was the original inspiration
-for this project.
+[This project (escservesconfig)](https://code.google.com/p/escservesconfig/)
+by some Thoughtworks guys was the original inspiration for this
+project.
 
-<blockquote class="twitter-tweet" lang="en"><p><a href="https://twitter.com/pwab">@pwab</a> it's a thought experiment that's not getting any love theses days. First thing I would look at instead are etcd and zookeeper...</p>&mdash; Chris Read (@cread) <a href="https://twitter.com/cread/statuses/414909181763002368">December 23, 2013</a></blockquote>
-<script async src="//platform.twitter.com/widgets.js"
-charset="utf-8"></script>
+<blockquote class="twitter-tweet" lang="en"><p><a
+href="https://twitter.com/pwab">@pwab</a> it's a thought experiment
+that's not getting any love theses days. First thing I would look at
+instead are etcd and zookeeper...</p>&mdash; Chris Read (@cread) <a
+href="https://twitter.com/cread/statuses/414909181763002368">December
+23, 2013</a></blockquote> <script async
+src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-<blockquote class="twitter-tweet" lang="en"><p><a href="https://twitter.com/pwab">@pwab</a> I wouldn't use esc in anger. It's not been updated for a very long time. Use as an example of the configurationProvider patter.</p>&mdash; Tom Sulston (@tomsulston) <a href="https://twitter.com/tomsulston/statuses/414291164431261697">December 21, 2013</a></blockquote>
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+<blockquote class="twitter-tweet" lang="en"><p><a
+href="https://twitter.com/pwab">@pwab</a> I wouldn't use esc in anger.
+It's not been updated for a very long time. Use as an example of the
+configurationProvider patter.</p>&mdash; Tom Sulston (@tomsulston) <a
+href="https://twitter.com/tomsulston/statuses/414291164431261697">December
+21, 2013</a></blockquote> <script async
+src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 ## How it works
 
- - Define things called `applications`, which are a *specifications* for configuration requirements of real (software) applications.
- - Applications *have consistente version* strings computed in an idempotent/consistent way.
- - Define things called environments (dicts), that *key-value pairs*.
- - Environments have *consistent version* strings based on their key and data values
- - Allow environments to be based on other environments, optionally overriding some of the values.
+ - Define things called `applications`, which are a *specifications*
+   for configuration requirements of real (software) applications.
+ - Applications *have consistent version strings* computed in an
+   idempotent/consistent way.
+ - Define things called `environments` (dicts), that are *key-value
+   pairs* and that can possibly satisfy a specification of an
+   `application`.
+ - Environments have *consistent version strings* based on their key
+   and data values.
+ - Allow environments to be based on other environments, optionally
+   overriding some of the values.
 
  - REST interface
 
@@ -65,25 +81,16 @@ charset="utf-8"></script>
 
 Given the following application:
 
-```
-key2
-key3
-```
+``` key2 key3 ```
 
 and given the following environment:
 
-```
-key1=value1
-key2=22$key122
-key3=333$key2333
-```
+``` key1=value1 key2=22$key122 key3=333$key2333 ```
 
-*referencing* means that this application realized in this environment will get the following configuration:
+*referencing* means that this application realized in this environment
+ will get the following configuration:
 
-```
-key2=22value122
-key3=333value1333
-```
+``` key2=22value122 key3=333value1333 ```
 
 ## License
 
