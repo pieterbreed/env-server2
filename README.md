@@ -1,70 +1,67 @@
 # env-server
 
-A service for sane environment configuration.
+A service for organizing environment configuration.
 
-## Status: Not useful yet!
+## Status: Slightly usefull
+
+There is an in-memory implementation of a "database" so no persistence
+accross restarts. This is usefull for testing the concepts and the
+idea and dogfooding. Not a whole lot more though.
 
 ## What is the problem?
 
-...that this software addresses
+I work in an enterprise environment where a few different teams work
+independently on different software systems but everything is deployed
+together into environments and have to cooperate.
+
+One of the hardest problems we have is identifying the requirements
+(config) for each app and then fulfilling those requirements in a
+reliable manner.
+
+Most often, these requirements are identifiers for things like:
+
+ - Databases
+ - Fileservers
+ - Web services
+ - etc
+
+Other things that can go into this list could possibly be:
+
+ - Credentials
+ - Per deploy values
+
+([These are the things these guys at 12factor.net talk about](http://12factor.net/config))
 
 ## Facts
 
-## Context
-
-## Constraints
+ - Written in clojure
+ - Has a REST API with some content negotiation
+ - Does not implement authentication and authorization (that's the job
+   of something like `nginx`)
 
 ## Similar solutions?
 
-## What are the problems? (that I know of)
+[This project (escservesconfig)](https://code.google.com/p/escservesconfig/) by some Thoughtworks guys was the original inspiration
+for this project.
 
- - shortcomings?
+<blockquote class="twitter-tweet" lang="en"><p><a href="https://twitter.com/pwab">@pwab</a> it's a thought experiment that's not getting any love theses days. First thing I would look at instead are etcd and zookeeper...</p>&mdash; Chris Read (@cread) <a href="https://twitter.com/cread/statuses/414909181763002368">December 23, 2013</a></blockquote>
+<script async src="//platform.twitter.com/widgets.js"
+charset="utf-8"></script>
 
-## Features
+<blockquote class="twitter-tweet" lang="en"><p><a href="https://twitter.com/pwab">@pwab</a> I wouldn't use esc in anger. It's not been updated for a very long time. Use as an example of the configurationProvider patter.</p>&mdash; Tom Sulston (@tomsulston) <a href="https://twitter.com/tomsulston/statuses/414291164431261697">December 21, 2013</a></blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
- - Define things called applications, which are a specifications for configuration requirements of real (software) applications.
- - Applications have version strings computed in an idempotent/consistent way.
- - Define things called environments (dicts), that are full or partial realizations of applications.
- - Environments have consistent version numbers based on their key and data values
- - Allow environments to be based on other environments, optionally overriding some of the valuese.
+## How it works
 
- - REST interface (un-implemented)
- - Allow environment variables to resolve their values using references to other values, ie, referencing. (un-implemented)
- - Allow environment variables to resolve their values using string interpolation syntax. (un-implemented)
+ - Define things called `applications`, which are a *specifications* for configuration requirements of real (software) applications.
+ - Applications *have consistente version* strings computed in an idempotent/consistent way.
+ - Define things called environments (dicts), that *key-value pairs*.
+ - Environments have *consistent version* strings based on their key and data values
+ - Allow environments to be based on other environments, optionally overriding some of the values.
 
-## Concepts
+ - REST interface
 
-### String Interpolation
-
-([Wikipedia article on string interpolation here](http://en.wikipedia.org/wiki/String_interpolation))
-
-The basic idea is that given this application:
-
-```
-UsefulConnectionString
-```
-
-and given this environment:
-
-```
-username=John
-pass=P@ssw0rd
-sqlDb=localhost
-ConnectionStringFormat="user:$$user, password:$$password, database:$$database"
-UsefulConnectionString="$ConnectionStringFormat$$$user=$username$$password=$pass$$database=$sqlDb"
-```
-
-that the application will be realized like this:
-
-```
-UsefulConnectionString="user:John, password:P@ssw0rd, database:localhost"
-```
-
-
-
-This is sometimes
-
-### Referencing
+### Referencing (not done yet)
 
 Given the following application:
 
