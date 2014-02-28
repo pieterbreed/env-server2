@@ -23,12 +23,6 @@
       (let [v (-create-map-hash "name" {"one" "1" "two" "2" "three" "3"})]
         (is (= v
                (-create-map-hash "name" {"three" "3" "two" "2" "one" "1"})))))
-    (testing "that or-value returns the default if the second argument is nil"
-      (= 1
-         (-or-value 1 nil)))
-    (testing "that or-value returns the second argument if it is not nil"
-      (= 2
-         (-or-value 1 2)))
     (testing "that the -db-curry works"
       (is (= 1 ((-db-curry + 1) 0)))
       (is (= 6 ((-db-curry + 1) 5))))

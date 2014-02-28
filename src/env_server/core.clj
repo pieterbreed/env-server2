@@ -1,18 +1,17 @@
 (ns env-server.core
-  (:require [clojure.string :as str]
-            [digest :as digest]
-            [slingshot.slingshot :refer [throw+ try+]]
-            [clojure.set :as set]
-            [ring.middleware.reload :as reload]
-            [ring.util.response :as response]
-            [ring.util.request :as request]
+  (:require [clojure.set :as set]
+            [clojure.string :as str]
             [compojure.core :as compcore]
             [compojure.handler :as comphandler]
             [compojure.route :as comproute]
+            [digest :as digest]
             [org.httpkit.server :as httpkit]
-            [ring.middleware.json :as ringjson]
-            [ring.middleware.format :as format])
-  
+            [ring.middleware.format :as format]
+            [ring.middleware.reload :as reload]
+            [ring.util.request :as request]
+            [ring.util.response :as response]
+            [env-server.utils :refer [strings?]]
+            [slingshot.slingshot :refer [throw+ try+]])
   (:gen-class))
 
 ;; -------------------- DATABASE INTERFACE --------------------
@@ -26,24 +25,6 @@
     (:backing-type db)))
 
 ;; -------------------- UTILS --------------------
-
-(defn strings?
-  "Returns true if all items in the seq are strings false if not. Calls seq on the argument"
-  [s]
-  (nil? (some #(not (string? %)) (seq  s))))
-
-(defn -db-curry
-  "Used with the change db functions. Takes a function and some arguments and returns a func that takes one argument. The list of arguments is curried to the given function. The result fn takes one argument, this will be the first argument. This is useful to turn all of the db-change functions into function that can operate on a db value
-
-Eg: ((-db-curry + 2 3) 1) -> (+ 1 2 3) -> 6"
-  [f & args]
-  (fn [db]
-    (apply f db args)))
-
-(defn -or-value
-  "Returns the default (first) parameter's value if the second is nil, else the second param value"
-  [d v]
-  (if (nil? v) d v))
 
 (defn -create-hash
   [name settings]
