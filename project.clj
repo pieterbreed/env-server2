@@ -12,7 +12,9 @@
                  [http-kit "2.0.0"]
                  [javax.servlet/servlet-api "2.5"]
                  [ring/ring-json "0.2.0"]
-                 [ring-middleware-format "0.3.2"]]
+                 [ring-middleware-format "0.3.2"]
+                 [org.clojure/java.jdbc "0.3.3"]
+                 [org.xerial/sqlite-jdbc "3.7.2"]]
   :main ^:skip-aot env-server.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

@@ -11,18 +11,10 @@
             [ring.util.request :as request]
             [ring.util.response :as response]
             [env-server.utils :refer [strings?]]
+            [env-server.db-interface :refer :all]
             [slingshot.slingshot :refer [throw+ try+]])
   (:gen-class))
 
-;; -------------------- DATABASE INTERFACE --------------------
-
-(defmulti get-db-value
-  "Gets/refreshes the database value from the backing store."
-  :backing-type)
-(defmulti modify-db-value
-  "Takes two parameters, the first, a vector, describing the key to set similar to assoc-in, the second the value to set"
-  (fn [db path value]
-    (:backing-type db)))
 
 ;; -------------------- UTILS --------------------
 
