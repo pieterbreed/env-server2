@@ -13,8 +13,9 @@
                  [javax.servlet/servlet-api "2.5"]
                  [ring/ring-json "0.2.0"]
                  [ring-middleware-format "0.3.2"]
-                 [org.clojure/java.jdbc "0.3.3"]
-                 [org.xerial/sqlite-jdbc "3.7.2"]]
+                 [org.xerial/sqlite-jdbc "3.7.2"]
+                 [korma "0.3.0-RC6"]
+                 [lobos "1.0.0-beta1"]]
   :main ^:skip-aot env-server.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
